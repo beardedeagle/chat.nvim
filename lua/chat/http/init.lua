@@ -4,6 +4,7 @@ local M = {}
 
 local config = require('chat.config')
 local routes = require('chat.http.routes')
+local response = require('chat.http.response')
 
 function M.start()
   if M._server then
@@ -47,7 +48,7 @@ function M.start()
       local request_line = header_part:match('([^\r\n]+)')
       local method, path = request_line:match('^(%S+)%s+(%S+)')
 
-      local headers = routes.parse_headers(header_part)
+      local headers = response.parse_headers(header_part)
 
       local content_length = tonumber(headers['content-length'] or '0')
       if #body < content_length then
