@@ -1,6 +1,6 @@
 local sessions = require('chat.sessions')
+local queue = require('chat.queue')
 local response = require('chat.http.response')
-
 local M = {}
 
 --- Build session info object (shared by GET /sessions and GET /sessions/:id)
@@ -37,7 +37,7 @@ local function build_session_info(id, data)
     provider = data.provider,
     model = data.model,
     pin = sessions.get_session_pin(id),
-    in_progress = sessions.is_in_progress(id),
+    in_progress = sessions.is_in_progress(id) or queue.has_pending(id),
     message_count = message_count,
     last_message = last_message,
   }
