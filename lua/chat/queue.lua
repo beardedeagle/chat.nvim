@@ -58,6 +58,11 @@ function M.pop(session)
   return table.remove(message_queue[session], 1)
 end
 
+-- Check if session has pending messages
+function M.has_pending(session)
+  return message_queue[session] and #message_queue[session] > 0
+end
+
 -- Optional: manual start (for backward compatibility)
 function M.start()
   start_timer()
