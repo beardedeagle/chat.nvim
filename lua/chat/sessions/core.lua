@@ -302,7 +302,6 @@ function M.get_session_pin(session_id)
   end
   return storage.sessions[session_id].pin or false
 end
-
 --- Sets the pin status for a session
 --- @param session_id string The session identifier
 --- @param pin boolean The pin status to set
@@ -322,8 +321,36 @@ function M.set_session_pin(session_id, pin)
   return true
 end
 
+--- Gets the title for a session
+--- @param session_id string The session identifier
+--- @return string|nil The title if session exists, nil otherwise
+function M.get_session_title(session_id)
+  if not storage.sessions[session_id] then
+    return nil
+  end
+  return storage.sessions[session_id].title or ''
+end
+
+--- Sets the title for a session
+--- @param session_id string The session identifier
+--- @param title string The title to set
+--- @return boolean True if set successfully, false if validation fails
+function M.set_session_title(session_id, title)
+  if type(title) ~= 'string' then
+    return false
+  end
+  if not session_id then
+    return false
+  end
+  if not storage.sessions[session_id] then
+    return false
+  end
+  storage.sessions[session_id].title = title
+  storage.write_cache(session_id)
+  return true
+end
+
 --- Calculates total token usage for a session
---- Aggregates usage from all messages if not cached
 --- @param session_id string The session identifier
 --- @return integer total_tokens Total tokens used
 --- @return integer prompt_tokens Prompt tokens used

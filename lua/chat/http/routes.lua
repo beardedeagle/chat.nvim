@@ -8,7 +8,21 @@ local function build_session_info(id, data)
   local messages = sessions.get_messages(id)
   local message_count = #messages
   local last_message = nil
-  local title = ''
+
+  -- Use stored title first, fallback to auto-extract from first user message
+  local title = sessions.get_session_title(id) or ''
+  if title == '' and message_count > 0 then
+    for _, msg in ipairs(messages) do
+      if msg.role == 'user' then
+        title = msg.content or ''
+        if #title > 50 then
+          title = title:sub(1, 50) .. '...'
+        end
+        break
+      end
+    end
+  end
+
   if message_count > 0 then
     local last = messages[message_count]
     local content = last.content or ''
@@ -20,15 +34,6 @@ local function build_session_info(id, data)
       content = content,
       created = last.created,
     }
-    for _, msg in ipairs(messages) do
-      if msg.role == 'user' then
-        title = msg.content or ''
-        if #title > 50 then
-          title = title:sub(1, 50) .. '...'
-        end
-        break
-      end
-    end
   end
   return {
     id = id,
@@ -45,7 +50,6 @@ end
 
 --- Handle HTTP request (separated for vim.schedule_wrap)
 function M.handle_request(client, method, path, headers, body, content_length)
-  local config = require('chat.config')
   local url_decode = response.url_decode
 
   -- GET /session?id=session_id: return HTML preview (no auth required)
@@ -377,8 +381,43 @@ function M.handle_request(client, method, path, headers, body, content_length)
     end
 
     -- Set pin status
-    sessions.set_session_pin(session_id, pin)
+    response.send_response(client, 204, 'No Content')
 
+  elseif method == 'PUT' and path:match('^/session/[^/]+/title$') then
+    -- PUT /session/:id/title: set title for session
+    local session_id = path:match('^/session/([^/]+)/title$')
+    if not session_id then
+      response.send_response(client, 400, 'Bad Request')
+      return
+    end
+
+    session_id = url_decode(session_id)
+
+    -- Check if session exists
+    if not sessions.exists(session_id) then
+      response.send_json(client, 404, { error = 'Session not found' })
+      return
+    end
+
+    -- Parse body
+    local ok, obj = pcall(vim.json.decode, body:sub(1, content_length))
+    if not ok or type(obj) ~= 'table' then
+      response.send_response(client, 400, 'Bad Request')
+      return
+    end
+
+    local title = obj.title
+    if type(title) ~= 'string' then
+      response.send_json(client, 400, { error = 'Missing or invalid title value' })
+      return
+    end
+
+    -- Set title
+    sessions.set_session_title(session_id, title)
+
+    response.send_response(client, 204, 'No Content')
+
+  elseif method == 'POST' and path:match('^/session/[^/]+/retry$') then
     response.send_response(client, 204, 'No Content')
 
   elseif method == 'POST' and path:match('^/session/[^/]+/retry$') then
