@@ -69,6 +69,7 @@ function M.on_progress_tool_call_done(jobid)
   local progress = require('chat.sessions.progress')
   local session_id = progress.get_progress_session(jobid)
   local windows = require('chat.windows')
+  local messages = require('chat.sessions.messages')
 
   local tool_calls = util.transform(job_tool_calls[jobid])
 
@@ -82,7 +83,7 @@ function M.on_progress_tool_call_done(jobid)
       created = os.time(),
       session = session_id,
     }
-    require('chat.sessions.messages').append_message(session_id, error_message)
+    messages.append_message(session_id, error_message)
     windows.on_message(session_id, error_message)
 
     progress.on_progress_done(jobid, {
@@ -99,12 +100,15 @@ function M.on_progress_tool_call_done(jobid)
     tool_calls = tool_calls,
   })
 
-  windows.on_tool_call_start(session_id, {
+  -- Append assistant message with tool_calls to storage
+  local assistant_tool_call_message = {
     role = 'assistant',
     tool_calls = tool_calls,
     created = os.time(),
-    session = session_id,
-  })
+  }
+  messages.append_message(session_id, assistant_tool_call_message)
+
+  windows.on_tool_call_start(session_id, assistant_tool_call_message)
   M.on_complete(session_id, jobid)
 
   for _, tool_call in ipairs(tool_calls) do
@@ -145,7 +149,7 @@ function M.on_progress_tool_call_done(jobid)
               error = res.error,
             },
           }
-          require('chat.sessions.messages').append_message(session_id, tool_done_message)
+          messages.append_message(session_id, tool_done_message)
           windows.on_tool_call_done(session_id, { tool_done_message })
           local async = require('chat.sessions.async')
           async.finish_async_tool(session_id, res.jobid or res.mcp_tool_call_id)
@@ -163,13 +167,13 @@ function M.on_progress_tool_call_done(jobid)
             error = 'no result returned from tool',
           },
         }
-        require('chat.sessions.messages').append_message(session_id, tool_done_message)
+        messages.append_message(session_id, tool_done_message)
         windows.on_tool_call_done(session_id, { tool_done_message })
       elseif result.jobid or result.mcp_tool_call_id then
         local async = require('chat.sessions.async')
         async.start_async_tool(session_id, result.jobid or result.mcp_tool_call_id)
       else
-        local tool_done_message = {
+        local tool_done_done_message = {
           role = 'tool',
           content = result.content
             or ('tool_call run failed, error is: \n' .. result.error),
@@ -180,8 +184,8 @@ function M.on_progress_tool_call_done(jobid)
             error = result.error,
           },
         }
-        require('chat.sessions.messages').append_message(session_id, tool_done_message)
-        windows.on_tool_call_done(session_id, { tool_done_message })
+        messages.append_message(session_id, tool_done_done_message)
+        windows.on_tool_call_done(session_id, { tool_done_done_message })
       end
     else
       local tool_done_message = {
@@ -194,7 +198,7 @@ function M.on_progress_tool_call_done(jobid)
           error = 'failed to decode arguments.',
         },
       }
-      require('chat.sessions.messages').append_message(session_id, tool_done_message)
+      messages.append_message(session_id, tool_done_message)
       log.info('failed to decode arguments, error is:' .. arguments)
       log.info('arguments is:' .. (tool_call['function'].arguments or 'nil'))
       windows.on_tool_call_done(session_id, { tool_done_message })
