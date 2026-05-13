@@ -100,14 +100,12 @@ function M.on_progress_tool_call_done(jobid)
     tool_calls = tool_calls,
   })
 
-  -- Append assistant message with tool_calls to storage
+  -- Prepare assistant message for UI display (already saved by progress.on_progress_done)
   local assistant_tool_call_message = {
     role = 'assistant',
     tool_calls = tool_calls,
     created = os.time(),
   }
-  messages.append_message(session_id, assistant_tool_call_message)
-
   windows.on_tool_call_start(session_id, assistant_tool_call_message)
   M.on_complete(session_id, jobid)
 
