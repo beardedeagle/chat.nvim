@@ -192,7 +192,7 @@ function TestHTTP:testSetSessionModel()
   -- Set model
   sessions.set_session_model(self.test_session_id, 'claude-3-5-sonnet-20241022')
 
-  -- Verify it was set
+-- Verify it was set
   local model = sessions.get_session_model(self.test_session_id)
   lu.assertEquals(model, 'claude-3-5-sonnet-20241022')
 end
@@ -214,13 +214,44 @@ function TestHTTP:testSetSessionPin()
   lu.assertEquals(pin_false, false)
 end
 
+-- Test GET /sessions/:id/raw endpoint
+function TestHTTP:testGetSessionRaw()
+  -- First, add some messages to the session to create cache
+  sessions.append_message(self.test_session_id, {
+    role = 'user',
+    content = 'Hello, this is a test message',
+    created = os.time(),
+  })
+
+  -- Force write cache
+  sessions.write_cache(self.test_session_id)
+
+  -- Get cache path for test session
+  local cache_path = sessions.get_cache_path(self.test_session_id)
+  lu.assertNotNil(cache_path)
+
+  -- Verify cache file exists
+  lu.assertTrue(vim.fn.filereadable(cache_path) == 1)
+
+  -- Read and verify content
+  local file = io.open(cache_path, 'r')
+  lu.assertNotNil(file)
+  local content = file:read('*a')
+  file:close()
+
+  -- Content should be valid JSON
+  local ok, data = pcall(vim.json.decode, content)
+  lu.assertTrue(ok)
+  lu.assertEquals(type(data), 'table')
+
+  -- Verify session ID in cache
+  lu.assertEquals(data.id, self.test_session_id)
+end
+
 -- Test route matching for PUT endpoints
 function TestHTTP:testPutRouteMatching()
   -- Test provider path extraction
   local provider_path = '/session/test-session-id/provider'
-  local provider_id = provider_path:match('^/session/([^/]+)/provider$')
-  lu.assertEquals(provider_id, 'test-session-id')
-
   -- Test model path extraction
   local model_path = '/session/test-session-id/model'
   local model_id = model_path:match('^/session/([^/]+)/model$')

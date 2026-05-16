@@ -38,7 +38,12 @@ require('chat').setup({
 | Endpoint                | Method | Description                                               |
 | ----------------------- | ------ | --------------------------------------------------------- |
 | `/`                     | POST   | Send messages to a specified chat session                 |
+| Endpoint                | Method | Description                                               |
+| ----------------------- | ------ | --------------------------------------------------------- |
+| `/`                     | POST   | Send messages to a specified chat session                 |
 | `/sessions`             | GET    | Get a list of all sessions with details                   |
+| `/sessions/:id`         | GET    | Get single session info by ID                             |
+| `/sessions/:id/raw`     | GET    | Get raw cache content for a session                       |
 | `/providers`            | GET    | Get a list of all supported AI providers                  |
 | `/session/new`          | POST   | Create a new session                                      |
 | `/session/:id`          | DELETE | Delete a session                                          |
@@ -49,6 +54,7 @@ require('chat').setup({
 | `/session/:id/model`    | PUT    | Set model for a session                                   |
 | `/session/:id/cwd`      | PUT    | Set working directory for a session                       |
 | `/session/:id/pin`      | PUT    | Toggle pin status for a session                           |
+| `/session/:id/title`    | PUT    | Set custom title for a session                            |
 | `/session`              | GET    | Get HTML preview of a session (requires `id` parameter)   |
 | `/messages`             | GET    | Get message list for a session (requires `session` param) |
 
@@ -311,20 +317,76 @@ Set the pin status for a specific session. Pinning a session marks it as importa
 
 ```bash
 # Pin a session
-curl -X PUT http://127.0.0.1:7777/session/2024-01-15-10-30-00/pin \
-  -H "X-API-Key: your-secret-key" \
-  -H "Content-Type: application/json" \
-  -d '{"pin": true}'
-
-# Unpin a session
-curl -X PUT http://127.0.0.1:7777/session/2024-01-15-10-30-00/pin \
-  -H "X-API-Key: your-secret-key" \
-  -H "Content-Type: application/json" \
-  -d '{"pin": false}'
 ```
 
-### DELETE `/session/:id`
+### PUT `/session/:id/title`
 
+Set a custom title for a specific session.
+
+**Path Parameters**:
+
+| Parameter | Type   | Description |
+| --------- | ------ | ----------- |
+| `id`      | string | Session ID  |
+
+**Request Body**:
+
+```json
+{
+  "title": "My custom title"
+}
+```
+
+**Response**:
+
+| Status Code | Description                               |
+| ----------- | ----------------------------------------- |
+| 204         | Success - Title updated                   |
+| 404         | Not Found - Session does not exist        |
+| 400         | Bad Request - Missing or invalid title    |
+| 401         | Unauthorized - Invalid or missing API key |
+
+**Example**:
+
+```bash
+curl -X PUT http://127.0.0.1:7777/session/2024-01-15-10-30-00/title \
+  -H "X-API-Key: your-secret-key" \
+  -H "Content-Type: application/json" \
+  -d '{"title": "Debugging Lua plugin"}'
+```
+
+### GET `/sessions/:id/raw`
+
+Get the raw cache content for a specific session. This returns the complete JSON content of the session's cache file.
+
+**Path Parameters**:
+
+| Parameter | Type   | Description |
+| --------- | ------ | ----------- |
+| `id`      | string | Session ID  |
+
+**Response**:
+
+Returns the raw JSON content from the session's cache file, including all messages, metadata, and session state.
+
+| Status Code | Description                               |
+| ----------- | ----------------------------------------- |
+| 200         | Success - Returns raw JSON content        |
+| 404         | Not Found - Session cache not found       |
+| 500         | Server Error - Failed to read cache file  |
+| 401         | Unauthorized - Invalid or missing API key |
+
+**Example**:
+
+```bash
+curl -H "X-API-Key: your-secret-key" http://127.0.0.1:7777/sessions/2024-01-15-10-30-00/raw
+```
+
+**Notes**:
+
+- This endpoint is useful for debugging or exporting session data
+- The response is the complete session cache file content (JSON)
+- Unlike `/messages`, this includes all session metadata and state
 Delete a specific session.
 
 **Path Parameters**:

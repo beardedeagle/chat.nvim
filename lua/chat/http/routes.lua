@@ -2,7 +2,9 @@ local sessions = require('chat.sessions')
 local queue = require('chat.queue')
 local response = require('chat.http.response')
 local config = require('chat.config')
+
 local M = {}
+
 --- Build session info object (shared by GET /sessions and GET /sessions/:id)
 local function build_session_info(id, data)
   local messages = sessions.get_messages(id)
@@ -35,6 +37,7 @@ local function build_session_info(id, data)
       created = last.created,
     }
   end
+
   return {
     id = id,
     title = title,
@@ -99,6 +102,34 @@ function M.handle_request(client, method, path, headers, body, content_length)
     end
     response.send_json(client, 200, session_list)
 
+  elseif method == 'GET' and path:match('^/sessions/[^/]+/raw$') then
+    -- GET /sessions/:id/raw: return raw cache content
+    local session_id = path:match('^/sessions/([^/]+)/raw$')
+    session_id = url_decode(session_id)
+
+    local cache_path = sessions.get_cache_path(session_id)
+    if not cache_path then
+      response.send_json(client, 404, { error = 'Session cache not found' })
+      return
+    end
+
+    local file = io.open(cache_path, 'r')
+    if not file then
+      response.send_json(client, 500, { error = 'Failed to read cache' })
+      return
+    end
+
+    local content = file:read('*a')
+    file:close()
+
+    local resp = string.format(
+      'HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: %d\r\n\r\n%s',
+      #content,
+      content
+    )
+    client:write(resp)
+    client:close()
+
   elseif method == 'GET' and path:match('^/sessions/[^/]+$') then
     -- GET /sessions/:id: return single session info
     local session_id = path:match('^/sessions/(.+)$')
@@ -140,6 +171,7 @@ function M.handle_request(client, method, path, headers, body, content_length)
       return a.name < b.name
     end)
     response.send_json(client, 200, providers)
+
   elseif method == 'POST' and path == '/session/new' then
     -- POST /session/new: create new session
     local new_id = sessions.new()
@@ -171,6 +203,7 @@ function M.handle_request(client, method, path, headers, body, content_length)
       message_count = 0,
       last_message = nil,
     })
+
   elseif method == 'DELETE' and path:match('^/session/') then
     -- DELETE /session/:id: delete session
     local session_id = path:match('^/session/(.+)$')
@@ -218,6 +251,7 @@ function M.handle_request(client, method, path, headers, body, content_length)
     sessions.cancel_progress(session_id)
 
     response.send_response(client, 204, 'No Content')
+
   elseif method == 'POST' and path:match('^/session/[^/]+/clear$') then
     -- POST /session/:id/clear: clear session messages
     local session_id = path:match('^/session/([^/]+)/clear$')
@@ -247,6 +281,7 @@ function M.handle_request(client, method, path, headers, body, content_length)
     else
       response.send_json(client, 500, { error = 'Failed to clear session' })
     end
+
   elseif method == 'PUT' and path:match('^/session/[^/]+/provider$') then
     -- PUT /session/:id/provider: set provider for session
     local session_id = path:match('^/session/([^/]+)/provider$')
@@ -381,6 +416,8 @@ function M.handle_request(client, method, path, headers, body, content_length)
     end
 
     -- Set pin status
+    sessions.set_session_pin(session_id, pin)
+
     response.send_response(client, 204, 'No Content')
 
   elseif method == 'PUT' and path:match('^/session/[^/]+/title$') then
@@ -415,9 +452,6 @@ function M.handle_request(client, method, path, headers, body, content_length)
     -- Set title
     sessions.set_session_title(session_id, title)
 
-    response.send_response(client, 204, 'No Content')
-
-  elseif method == 'POST' and path:match('^/session/[^/]+/retry$') then
     response.send_response(client, 204, 'No Content')
 
   elseif method == 'POST' and path:match('^/session/[^/]+/retry$') then
