@@ -156,11 +156,7 @@ function M.on_progress_done(jobid, opts)
 
   require('chat.sessions.storage').write_cache(session_id)
 end
-    require('chat.sessions.messages').append_message(session_id, message)
-  end
 
-  require('chat.sessions.storage').write_cache(session_id)
-end
 --- Handles job exit/cleanup when streaming ends or is interrupted
 --- Clears all progress tracking data for the job
 --- @param jobid integer The job identifier
