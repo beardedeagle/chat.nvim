@@ -219,6 +219,7 @@ function M.send_message(session, content)
   }
   sessions.append_message(session, msg)
   M.on_message(session, msg)
+  require('chat.sessions.storage').write_cache(session)
 
   local jobid = protocol.request({
     session = session,
