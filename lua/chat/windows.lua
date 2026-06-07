@@ -53,10 +53,7 @@ function M.open(opt)
   -- Handle cwd option
   if opt and opt.cwd then
     if sessions.is_in_progress(current_session) then
-      log.notify(
-        'session is in progress, can not change cwd.',
-        'WarningMsg'
-      )
+      log.notify('session is in progress, can not change cwd.', 'WarningMsg')
     else
       sessions.change_cwd(current_session, opt.cwd)
     end
@@ -131,6 +128,7 @@ function M.open(opt)
         sessions.append_message(current_session, message)
         M.on_message(current_session, message)
         prompt.clear()
+        require('chat.sessions.storage').write_cache(current_session)
 
         local jobid = protocol.request({
           session = current_session,
@@ -265,4 +263,3 @@ function M.push_text(chunk)
 end
 
 return M
-
