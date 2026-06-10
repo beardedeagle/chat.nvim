@@ -268,7 +268,7 @@ function M.review_plan(plan_id, summary, lessons, issues)
   M.save()
 
   -- Extract key lessons to long-term memory
-  if #lessons > 0 then
+  if lessons and #lessons > 0 then
     local content = string.format(
       '[plan_review] %s: %s',
       plan.title,
@@ -315,3 +315,4 @@ end
 M.load()
 
 return M
+
