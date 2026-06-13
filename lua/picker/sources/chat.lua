@@ -22,12 +22,17 @@ function M.get()
   for _, id in ipairs(ids) do
     local messages = sessions.get_messages(id)
     if #messages > 1 then
+      local title = sessions.get_session_title(id)
       local str
-      for _, v in ipairs(vim.split(messages[1].content, '\n')) do
-        if v ~= '' then
-          str = v
-          break
+      if not title or title == '' then
+        for _, v in ipairs(vim.split(messages[1].content, '\n')) do
+          if v ~= '' then
+            str = v
+            break
+          end
         end
+      else
+        str = title
       end
       table.insert(items, {
         str = str,
@@ -55,7 +60,9 @@ function M.actions()
       if path then
         vim.cmd.tabedit(path)
       else
-        require('chat.log').notify('cache file for selected session does not exist')
+        require('chat.log').notify(
+          'cache file for selected session does not exist'
+        )
       end
     end,
     ['<C-o>'] = function(entry)
