@@ -10,7 +10,7 @@ local model_max_tokens = {
   ['minimax-m2.7'] = 128 * 1024,
   ['minimax-m3'] = 128 * 1024,
   ['kimi-k2.6'] = 32 * 1024,
-  ['glm-5.1'] = 128 * 1024,
+  ['glm-5.2'] = 128 * 1024,
 }
 
 local function get_max_tokens(model)
@@ -19,7 +19,7 @@ end
 
 function M.available_models()
   return {
-    'glm-5.1',
+    'glm-5.2',
     'doubao-seed-code',
     'doubao-seed-2.0-code',
     'doubao-seed-2.0-pro',
