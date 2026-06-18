@@ -25,6 +25,7 @@ function TestToolsGeneral:testAvailableTools()
   lu.assertTrue(vim.tbl_contains(tool_names, 'search_text'))
   lu.assertTrue(vim.tbl_contains(tool_names, 'extract_memory'))
   lu.assertTrue(vim.tbl_contains(tool_names, 'recall_memory'))
+  lu.assertTrue(vim.tbl_contains(tool_names, 'move_file'))
 end
 
 function TestToolsGeneral:testInvalidToolCall()
